@@ -458,7 +458,7 @@ function initSceneData()
 		Exposure: 1.0,
 		Focus_Grid_Enabled: false,
 		Focus_Grid_Distance_mm: 1000.0,
-		Focus_Grid_Lines: 13,
+		Focus_Grid_Lines: 1.0,
 		Focus_Algorithm: 'Lensmaker (EFL)',
 		Object_Distance_mm: 1000.0,
 		Image_Distance_mm: 53.0,
@@ -516,7 +516,7 @@ function initSceneData()
 	focusAidFolder = opticalBenchFolder.addFolder('Focusing Aid');
 	focusGridEnabledController = focusAidFolder.add(paramsObject, 'Focus_Grid_Enabled').onChange(() => { needsUpdate = true; });
 	focusGridDistanceController = focusAidFolder.add(paramsObject, 'Focus_Grid_Distance_mm', 200.0, 20000.0, 10.0).onChange(() => { needsUpdate = true; });
-	focusGridLinesController = focusAidFolder.add(paramsObject, 'Focus_Grid_Lines', 2, 41, 1).onChange(() => { needsUpdate = true; });
+	focusGridLinesController = focusAidFolder.add(paramsObject, 'Focus_Grid_Lines', 0.01, 2.0, 0.01).name('Focus_Grid_Density').onChange(() => { needsUpdate = true; });
 	focusAlgorithmController = focusAidFolder.add(paramsObject, 'Focus_Algorithm', ['Lensmaker (EFL)', 'Paraxial (ABCD)', 'Ray (Snell)']).onChange(() => { needsUpdate = true; });
 
 	objectDistanceController = opticalBenchFolder.add(paramsObject, 'Object_Distance_mm', 300.0, 3000.0, 10.0).onChange(() => { needsUpdate = true; });

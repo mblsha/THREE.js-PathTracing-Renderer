@@ -23,7 +23,7 @@ uniform float uChartEmission;  // chart emission intensity
 
 uniform int uFocusGridEnabled;     // 0/1
 uniform float uFocusGridDistance;  // distance from sensor plane (mm)
-uniform int uFocusGridLines;       // grid line count across sensor (both axes)
+uniform float uFocusGridLines;     // grid density in sensor-NDC space (0.01..2.0)
 
 #include <pathtracing_uniforms_and_defines>
 
@@ -64,25 +64,27 @@ bool FocusGridIntersect(vec3 ro, vec3 rd, out float t, out vec3 n, out vec3 emis
 	if (abs(dt) < 0.0000001)
 		return false;
 
-	float gridZ = uSensorZ - uFocusGridDistance;
+	float D = max(0.01, uFocusGridDistance);
+	float gridZ = uSensorZ - D;
 	t = (gridZ - ro.z) / dt;
 	if (t <= 0.0)
 		return false;
 
 	vec3 hp = ro + rd * t;
 
-	float lines = max(2.0, float(uFocusGridLines));
-	float spacingX = uSensorSize.x / (lines - 1.0);
-	float spacingY = uSensorSize.y / (lines - 1.0);
+	// Project the grid in "sensor space" so its on-screen density doesn't change with distance.
+	// Approximate mapping: sensorXY ~= hp.xy * (uSensorZ / D)
+	vec2 sensorXY = hp.xy * (uSensorZ / D);
+	vec2 sensorNDC = sensorXY / (0.5 * uSensorSize);
 
-	float minSpacing = max(0.001, min(spacingX, spacingY));
-	float thickness = clamp(minSpacing * 0.06, 0.01, 0.4);
+	float density = clamp(uFocusGridLines, 0.01, 2.0);
+	float period = 1.0 / density;
 
-	// align to sensor edges so an even/odd line count still centers cleanly
-	float dx = periodicDist(hp.x + (0.5 * uSensorSize.x), spacingX);
-	float dy = periodicDist(hp.y + (0.5 * uSensorSize.y), spacingY);
+	float dx = periodicDist(sensorNDC.x, period);
+	float dy = periodicDist(sensorNDC.y, period);
 
-	float aa = clamp(max(fwidth(hp.x), fwidth(hp.y)), 0.0, minSpacing);
+	float thickness = 0.012;
+	float aa = clamp(max(fwidth(sensorNDC.x), fwidth(sensorNDC.y)), 0.0, 0.05);
 	float line = 1.0 - smoothstep(thickness, thickness + aa, min(dx, dy));
 	if (line <= 0.0)
 		return false;

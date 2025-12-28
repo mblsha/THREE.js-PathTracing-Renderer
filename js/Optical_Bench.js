@@ -1,6 +1,7 @@
 // scene/demo-specific variables go here
-let opticalBenchFolder, lensFolder, sensorFolder, chartFolder, viewFolder;
+let opticalBenchFolder, lensFolder, sensorFolder, chartFolder, viewFolder, sceneFolder;
 let viewModeController, exposureController;
+let sceneController;
 let objectDistanceController, imageDistanceController, apertureDiameterController;
 let stopZController;
 let lensIORController, lensR1Controller, lensR2Controller, lensThicknessController, lensClearApertureController;
@@ -31,6 +32,7 @@ function initSceneData()
 
 	paramsObject = {
 		View_Mode: 'Geometry View',
+		Scene: 'Test Chart',
 		Exposure: 1.0,
 		Object_Distance_mm: 1000.0,
 		Image_Distance_mm: 53.0,
@@ -82,6 +84,9 @@ function initSceneData()
 	viewModeController = viewFolder.add(paramsObject, 'View_Mode', ['Geometry View', 'Sensor Image']).onChange(() => { needsUpdate = true; applyViewMode(); });
 	exposureController = viewFolder.add(paramsObject, 'Exposure', 0.05, 4.0, 0.01).onChange(() => { needsUpdate = true; });
 
+	sceneFolder = opticalBenchFolder.addFolder('Scene');
+	sceneController = sceneFolder.add(paramsObject, 'Scene', ['Test Chart', 'Sunset Landscape']).onChange(() => { needsUpdate = true; });
+
 	objectDistanceController = opticalBenchFolder.add(paramsObject, 'Object_Distance_mm', 300.0, 3000.0, 10.0).onChange(() => { needsUpdate = true; });
 	imageDistanceController = opticalBenchFolder.add(paramsObject, 'Image_Distance_mm', 30.0, 90.0, 0.1).onChange(() => { needsUpdate = true; });
 	apertureDiameterController = opticalBenchFolder.add(paramsObject, 'Aperture_Diameter_mm', 2.0, 40.0, 0.1).onChange(() => { needsUpdate = true; });
@@ -103,9 +108,11 @@ function initSceneData()
 
 	opticalBenchFolder.open();
 	viewFolder.open();
+	sceneFolder.open();
 
 	// scene/demo-specific uniforms go here
 	pathTracingUniforms.uViewMode = { value: 1 };
+	pathTracingUniforms.uSceneID = { value: 0 };
 	pathTracingUniforms.uExposure = { value: paramsObject.Exposure };
 	pathTracingUniforms.uSensorZ = { value: paramsObject.Image_Distance_mm };
 
@@ -136,6 +143,7 @@ function updateVariablesAndUniforms()
 		let isGeometryView = paramsObject.View_Mode === 'Geometry View';
 
 		pathTracingUniforms.uViewMode.value = isGeometryView ? 1 : 0;
+		pathTracingUniforms.uSceneID.value = (paramsObject.Scene === 'Sunset Landscape') ? 1 : 0;
 		pathTracingUniforms.uExposure.value = paramsObject.Exposure;
 		pathTracingUniforms.uSensorZ.value = paramsObject.Image_Distance_mm;
 
@@ -166,7 +174,7 @@ function updateVariablesAndUniforms()
 
 	// INFO
 	cameraInfoElement.innerHTML =
-		paramsObject.View_Mode +
+		paramsObject.View_Mode + " / " + paramsObject.Scene +
 		" / u: " + paramsObject.Object_Distance_mm.toFixed(0) + "mm" +
 		" / v: " + paramsObject.Image_Distance_mm.toFixed(1) + "mm" +
 		" / Aperture: " + paramsObject.Aperture_Diameter_mm.toFixed(1) + "mm" +

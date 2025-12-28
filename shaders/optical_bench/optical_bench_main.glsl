@@ -147,7 +147,7 @@ void main(void)
 	if (uViewMode == 0)
 	{
 		// trace through lens (camera model). If it fails (vignetting / TIR), this sample contributes 0.
-		if (traceSinglet(origin, direction))
+		if (traceLens(origin, direction))
 		{
 			rayOrigin = origin;
 			rayDirection = direction;

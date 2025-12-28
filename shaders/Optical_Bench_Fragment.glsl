@@ -16,6 +16,8 @@ uniform float uLensR1;         // front surface radius (signed, mm)
 uniform float uLensR2;         // back surface radius (signed, mm)
 uniform float uLensThickness;  // center thickness (mm)
 uniform float uLensRadius;     // clear aperture radius (mm)
+uniform int uLensSurfaceCount; // number of lens surfaces (sensor->object)
+uniform vec4 uLensSurfaces[12];// (R, zVertex, iorAfter, unused)
 
 uniform float uChartZ;         // chart plane Z (mm)
 uniform vec2 uChartHalfSize;   // chart half-size (mm)

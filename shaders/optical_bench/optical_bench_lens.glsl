@@ -8,54 +8,44 @@ bool refractRay(vec3 I, vec3 N, float eta, out vec3 T)
 	return true;
 }
 
-bool traceSinglet(inout vec3 origin, inout vec3 direction)
+bool traceLens(inout vec3 origin, inout vec3 direction)
 {
-	// lens is centered on world origin, optical axis is +Z (object side is -Z, sensor side is +Z)
-	float zFront = -0.5 * uLensThickness;
-	float zBack = 0.5 * uLensThickness;
-
-	vec3 cFront = vec3(0.0, 0.0, zFront + uLensR1);
-	vec3 cBack  = vec3(0.0, 0.0, zBack + uLensR2);
-	float rFront = abs(uLensR1);
-	float rBack  = abs(uLensR2);
 	float lensRad2 = uLensRadius * uLensRadius;
 
-	// back surface (air -> glass)
-	float tBack = SphereIntersect(rBack, cBack, origin, direction);
-	if (tBack == INFINITY)
-		return false;
-	vec3 pBack = origin + direction * tBack;
-	if (dot(pBack.xy, pBack.xy) > lensRad2)
-		return false;
+	float n1 = 1.0;
+	for (int i = 0; i < 12; i++)
+	{
+		if (i >= uLensSurfaceCount)
+			break;
 
-	vec3 nBack = normalize(pBack - cBack);
-	if (dot(nBack, direction) > 0.0)
-		nBack *= -1.0;
+		vec4 s = uLensSurfaces[i];
+		float R = s.x;
+		float zV = s.y;
+		float n2 = s.z;
 
-	vec3 dirGlass;
-	if (!refractRay(direction, nBack, 1.0 / max(1.0001, uLensIor), dirGlass))
-		return false;
+		vec3 c = vec3(0.0, 0.0, zV + R);
+		float rAbs = abs(R);
 
-	origin = pBack + dirGlass * uEPS_intersect;
-	direction = dirGlass;
+		float t = SphereIntersect(rAbs, c, origin, direction);
+		if (t == INFINITY)
+			return false;
 
-	// front surface (glass -> air)
-	float tFront = SphereIntersect(rFront, cFront, origin, direction);
-	if (tFront == INFINITY)
-		return false;
-	vec3 pFront = origin + direction * tFront;
-	if (dot(pFront.xy, pFront.xy) > lensRad2)
-		return false;
+		vec3 p = origin + direction * t;
+		if (dot(p.xy, p.xy) > lensRad2)
+			return false;
 
-	vec3 nFront = normalize(pFront - cFront);
-	if (dot(nFront, direction) > 0.0)
-		nFront *= -1.0;
+		vec3 N = normalize(p - c);
+		if (dot(N, direction) > 0.0)
+			N *= -1.0;
 
-	vec3 dirAir;
-	if (!refractRay(direction, nFront, max(1.0001, uLensIor), dirAir))
-		return false;
+		vec3 T;
+		if (!refractRay(direction, N, n1 / max(1.0001, n2), T))
+			return false;
 
-	origin = pFront + dirAir * uEPS_intersect;
-	direction = dirAir;
+		origin = p + T * uEPS_intersect;
+		direction = T;
+		n1 = n2;
+	}
+
 	return true;
 }

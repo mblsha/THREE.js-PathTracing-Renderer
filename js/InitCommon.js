@@ -10,6 +10,7 @@ let screenCopyUniforms, screenOutputUniforms;
 let pathTracingDefines;
 let pathTracingVertexShader, pathTracingFragmentShader;
 let demoFragmentShaderFileName;
+let demoShaderChunkFiles = [];
 let screenCopyVertexShader, screenCopyFragmentShader;
 let screenOutputVertexShader, screenOutputFragmentShader;
 let triangleGeometry = new THREE.BufferGeometry();
@@ -107,6 +108,43 @@ cameraInfoElement.style.MozUserSelect = "none";
 let mouseControl = true;
 let pointerlockChange;
 let fileLoader = new THREE.FileLoader();
+
+function loadDemoShaderChunks(callback)
+{
+	if (!Array.isArray(demoShaderChunkFiles) || demoShaderChunkFiles.length === 0)
+	{
+		callback();
+		return;
+	}
+
+	let remaining = demoShaderChunkFiles.length;
+
+	for (let i = 0; i < demoShaderChunkFiles.length; i++)
+	{
+		const entry = demoShaderChunkFiles[i];
+		if (!entry || typeof entry.name !== 'string' || typeof entry.file !== 'string')
+		{
+			remaining--;
+			if (remaining === 0)
+				callback();
+			continue;
+		}
+
+		fileLoader.load('shaders/' + entry.file, function (chunkText)
+		{
+			THREE.ShaderChunk[entry.name] = chunkText;
+			remaining--;
+			if (remaining === 0)
+				callback();
+		}, undefined, function (error)
+		{
+			console.error('Failed to load shader chunk:', entry.file, error);
+			remaining--;
+			if (remaining === 0)
+				callback();
+		});
+	}
+}
 
 // The following list of keys is not exhaustive, but it should be more than enough to build interactive demos and games
 let KeyboardState = {
@@ -617,33 +655,36 @@ function initTHREEjs()
 	};
 
 	// load vertex and fragment shader files that are used in the pathTracing material, mesh and scene
-	fileLoader.load('shaders/common_PathTracing_Vertex.glsl', function (vertexShaderText)
+	loadDemoShaderChunks(function ()
 	{
-		pathTracingVertexShader = vertexShaderText;
-
-		fileLoader.load('shaders/' + demoFragmentShaderFileName, function (fragmentShaderText)
+		fileLoader.load('shaders/common_PathTracing_Vertex.glsl', function (vertexShaderText)
 		{
+			pathTracingVertexShader = vertexShaderText;
 
-			pathTracingFragmentShader = fragmentShaderText;
+			fileLoader.load('shaders/' + demoFragmentShaderFileName, function (fragmentShaderText)
+			{
 
-			pathTracingMaterial = new THREE.ShaderMaterial({
-				uniforms: pathTracingUniforms,
-				uniformsGroups: pathTracingUniformsGroups,
-				defines: pathTracingDefines,
-				vertexShader: pathTracingVertexShader,
-				fragmentShader: pathTracingFragmentShader,
-				depthTest: false,
-				depthWrite: false
+				pathTracingFragmentShader = fragmentShaderText;
+
+				pathTracingMaterial = new THREE.ShaderMaterial({
+					uniforms: pathTracingUniforms,
+					uniformsGroups: pathTracingUniformsGroups,
+					defines: pathTracingDefines,
+					vertexShader: pathTracingVertexShader,
+					fragmentShader: pathTracingFragmentShader,
+					depthTest: false,
+					depthWrite: false
+				});
+
+				pathTracingMesh = new THREE.Mesh(triangleGeometry, pathTracingMaterial);
+				pathTracingScene.add(pathTracingMesh);
+
+				// the following keeps the oversized full-screen triangle right in front 
+				//   of the camera at all times. This is necessary because without it, the full-screen 
+				//   triangle will fall out of view and get clipped when the camera rotates past 180 degrees.
+				worldCamera.add(pathTracingMesh);
+
 			});
-
-			pathTracingMesh = new THREE.Mesh(triangleGeometry, pathTracingMaterial);
-			pathTracingScene.add(pathTracingMesh);
-
-			// the following keeps the oversized full-screen triangle right in front 
-			//   of the camera at all times. This is necessary because without it, the full-screen 
-			//   triangle will fall out of view and get clipped when the camera rotates past 180 degrees.
-			worldCamera.add(pathTracingMesh);
-
 		});
 	});
 

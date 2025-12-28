@@ -433,12 +433,20 @@ function _attachFocusMarker(controller, propertyName)
 
 
 // called automatically from within initTHREEjs() function (located in InitCommon.js file)
-function initSceneData()
-{
-	demoFragmentShaderFileName = 'Optical_Bench_Fragment.glsl';
+	function initSceneData()
+	{
+		demoFragmentShaderFileName = 'Optical_Bench_Fragment.glsl';
+		demoShaderChunkFiles = [
+			{ name: 'optical_bench_primitives', file: 'optical_bench/optical_bench_primitives.glsl' },
+			{ name: 'optical_bench_focus_grid', file: 'optical_bench/optical_bench_focus_grid.glsl' },
+			{ name: 'optical_bench_test_chart', file: 'optical_bench/optical_bench_test_chart.glsl' },
+			{ name: 'optical_bench_sunset_landscape', file: 'optical_bench/optical_bench_sunset_landscape.glsl' },
+			{ name: 'optical_bench_lens', file: 'optical_bench/optical_bench_lens.glsl' },
+			{ name: 'optical_bench_main', file: 'optical_bench/optical_bench_main.glsl' }
+		];
 
-	// scene/demo-specific three.js objects setup goes here
-	sceneIsDynamic = false;
+		// scene/demo-specific three.js objects setup goes here
+		sceneIsDynamic = false;
 
 	allowOrthographicCamera = false;
 

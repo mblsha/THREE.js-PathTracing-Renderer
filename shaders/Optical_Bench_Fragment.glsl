@@ -21,6 +21,10 @@ uniform float uChartZ;         // chart plane Z (mm)
 uniform vec2 uChartHalfSize;   // chart half-size (mm)
 uniform float uChartEmission;  // chart emission intensity
 
+uniform int uFocusGridEnabled;     // 0/1
+uniform float uFocusGridDistance;  // distance from sensor plane (mm)
+uniform int uFocusGridLines;       // grid line count across sensor (both axes)
+
 #include <pathtracing_uniforms_and_defines>
 
 vec3 rayOrigin, rayDirection;
@@ -49,6 +53,43 @@ float periodicDist(float x, float period)
 {
 	float halfPeriod = 0.5 * period;
 	return abs(mod(x + halfPeriod, period) - halfPeriod);
+}
+
+bool FocusGridIntersect(vec3 ro, vec3 rd, out float t, out vec3 n, out vec3 emission)
+{
+	if (uFocusGridEnabled == 0)
+		return false;
+
+	float dt = rd.z;
+	if (abs(dt) < 0.0000001)
+		return false;
+
+	float gridZ = uSensorZ - uFocusGridDistance;
+	t = (gridZ - ro.z) / dt;
+	if (t <= 0.0)
+		return false;
+
+	vec3 hp = ro + rd * t;
+
+	float lines = max(2.0, float(uFocusGridLines));
+	float spacingX = uSensorSize.x / (lines - 1.0);
+	float spacingY = uSensorSize.y / (lines - 1.0);
+
+	float minSpacing = max(0.001, min(spacingX, spacingY));
+	float thickness = clamp(minSpacing * 0.06, 0.01, 0.4);
+
+	// align to sensor edges so an even/odd line count still centers cleanly
+	float dx = periodicDist(hp.x + (0.5 * uSensorSize.x), spacingX);
+	float dy = periodicDist(hp.y + (0.5 * uSensorSize.y), spacingY);
+
+	float aa = clamp(max(fwidth(hp.x), fwidth(hp.y)), 0.0, minSpacing);
+	float line = 1.0 - smoothstep(thickness, thickness + aa, min(dx, dy));
+	if (line <= 0.0)
+		return false;
+
+	n = vec3(0.0, 0.0, dt < 0.0 ? 1.0 : -1.0);
+	emission = vec3(0.15, 0.95, 0.35) * (2.5 * line);
+	return true;
 }
 
 vec3 chartPattern(vec2 p)
@@ -365,6 +406,22 @@ float SceneIntersectSensor_TestChart()
 	hitObjectID = -INFINITY;
 	hitType = -100;
 
+	// focusing aid grid (emissive lines only)
+	{
+		float tg;
+		vec3 gn, ge;
+		if (FocusGridIntersect(rayOrigin, rayDirection, tg, gn, ge) && tg < t)
+		{
+			t = tg;
+			hitNormal = gn;
+			hitColor = vec3(0.0);
+			hitEmission = ge;
+			hitType = LIGHT;
+			hitObjectID = float(objectCount);
+		}
+		objectCount++;
+	}
+
 	// emissive test chart plane (object stage)
 	vec3 chartPos = vec3(0.0, 0.0, uChartZ);
 	vec3 chartNormal = vec3(0.0, 0.0, 1.0);
@@ -433,6 +490,22 @@ float SceneIntersectSensor_SunsetLandscape()
 
 	hitObjectID = -INFINITY;
 	hitType = -100;
+
+	// focusing aid grid (emissive lines only)
+	{
+		float tg;
+		vec3 gn, ge;
+		if (FocusGridIntersect(rayOrigin, rayDirection, tg, gn, ge) && tg < t)
+		{
+			t = tg;
+			hitNormal = gn;
+			hitColor = vec3(0.0);
+			hitEmission = ge;
+			hitType = LIGHT;
+			hitObjectID = float(objectCount);
+		}
+		objectCount++;
+	}
 
 	// Lake (flat water rectangle)
 	float waterY = -360.0;
@@ -710,6 +783,22 @@ float SceneIntersectGeometry_TestChart()
 	float zBack = 0.5 * uLensThickness;
 	float stopPlaneZ = zBack + max(0.0, uStopOffset);
 
+	// focusing aid grid (emissive lines only)
+	{
+		float tg;
+		vec3 gn, ge;
+		if (FocusGridIntersect(rayOrigin, rayDirection, tg, gn, ge) && tg < t)
+		{
+			t = tg;
+			hitNormal = gn;
+			hitColor = vec3(0.0);
+			hitEmission = ge;
+			hitType = LIGHT;
+			hitObjectID = float(objectCount);
+		}
+		objectCount++;
+	}
+
 	// chart plane (diffuse, unlit pattern)
 	vec3 chartPos = vec3(0.0, 0.0, uChartZ);
 	vec3 chartNormal = vec3(0.0, 0.0, 1.0);
@@ -811,6 +900,22 @@ float SceneIntersectGeometry_SunsetLandscape()
 	float zFront = -0.5 * uLensThickness;
 	float zBack = 0.5 * uLensThickness;
 	float stopPlaneZ = zBack + max(0.0, uStopOffset);
+
+	// focusing aid grid (emissive lines only)
+	{
+		float tg;
+		vec3 gn, ge;
+		if (FocusGridIntersect(rayOrigin, rayDirection, tg, gn, ge) && tg < t)
+		{
+			t = tg;
+			hitNormal = gn;
+			hitColor = vec3(0.0);
+			hitEmission = ge;
+			hitType = LIGHT;
+			hitObjectID = float(objectCount);
+		}
+		objectCount++;
+	}
 
 	// sensor plane rectangle (overlay)
 	vec3 sensorPos = vec3(0.0, 0.0, uSensorZ);
